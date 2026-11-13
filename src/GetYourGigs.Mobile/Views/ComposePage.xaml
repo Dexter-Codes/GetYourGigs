@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GetYourGigs.Mobile.Views.ComposePage"
+    x:DataType="vm:ComposeViewModel"
+    Title="Make a connection"
+    xmlns:vm="clr-namespace:GetYourGigs.Mobile.ViewModels"
+>
+    <ScrollView>
+        <VerticalStackLayout Padding="23,20,23,40" Spacing="16">
+            <Label Text="GOOD WORK STARTS WITH HELLO" Style="{StaticResource Eyebrow}" />
+            <Label Text="{Binding Heading}" Style="{StaticResource Heading}" />
+            <Label Text="{Binding Subtitle}" Style="{StaticResource Caption}" />
+            <Border
+                Padding="15"
+                BackgroundColor="{StaticResource Sage}"
+                IsVisible="{Binding IsApplication}"
+            >
+                <Label
+                    Text="Up to three thoughtful applications per day. Withdrawing doesn’t restore the allowance."
+                    Style="{StaticResource Caption}"
+                />
+            </Border>
+            <Border Style="{StaticResource InputBorder}">
+                <Editor
+                    Text="{Binding Text}"
+                    Placeholder="A little about your experience, availability, or what you have in mind…"
+                    MaxLength="3000"
+                    HeightRequest="190"
+                />
+            </Border>
+            <VerticalStackLayout IsVisible="{Binding IsApplication}" Spacing="10">
+                <Label Text="Your quote (₹, optional)" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Entry
+                        Text="{Binding Price}"
+                        Keyboard="Numeric"
+                        Placeholder="Leave blank to discuss"
+                    />
+                </Border>
+            </VerticalStackLayout>
+            <VerticalStackLayout IsVisible="{Binding IsReview}">
+                <Label Text="Your rating out of 5" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{Binding Ratings}" SelectedItem="{Binding Rating}" />
+                </Border>
+            </VerticalStackLayout>
+            <Button Text="Send →" Command="{Binding SendCommand}" />
+            <Label Text="{Binding Error}" TextColor="{StaticResource Danger}" FontSize="11" />
+            <ActivityIndicator
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource Accent}"
+            />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

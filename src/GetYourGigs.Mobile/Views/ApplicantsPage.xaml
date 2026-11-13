@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GetYourGigs.Mobile.Views.ApplicantsPage"
+    x:DataType="vm:ApplicantsViewModel"
+    Title="Meet your applicants"
+    xmlns:vm="clr-namespace:GetYourGigs.Mobile.ViewModels"
+    xmlns:dto="clr-namespace:GetYourGigs.Contracts;assembly=GetYourGigs.Contracts"
+>
+    <Grid RowDefinitions="Auto,Auto,*">
+        <VerticalStackLayout Padding="22,20" Spacing="10">
+            <Label Text="THE RIGHT PEOPLE, RIGHT HERE" Style="{StaticResource Eyebrow}" />
+            <Label Text="Meet your applicants." Style="{StaticResource Heading}" />
+            <Label Text="{Binding Title}" Style="{StaticResource Caption}" />
+        </VerticalStackLayout>
+        <Label
+            Grid.Row="1"
+            Text="{Binding Error}"
+            TextColor="{StaticResource Danger}"
+            FontSize="11"
+            Margin="22,0"
+        />
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Items}" SelectionMode="None">
+            <CollectionView.EmptyView>
+                <Label
+                    Text="Applications will appear here. Good things take a little time."
+                    Style="{StaticResource Caption}"
+                    Margin="22"
+                />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="dto:ApplicationResponse">
+                    <Border Padding="17" Margin="22,7">
+                        <VerticalStackLayout Spacing="13">
+                            <Label
+                                Text="{Binding ApplicantName}"
+                                FontFamily="Manrope"
+                                FontSize="22"
+                                FontAttributes="Bold"
+                            />
+                            <Label
+                                Text="{Binding Status}"
+                                TextColor="{StaticResource Violet}"
+                                FontSize="11"
+                            />
+                            <Label Text="{Binding Message}" LineHeight="1.4" />
+                            <FlexLayout Wrap="Wrap">
+                                <Button
+                                    Text="Shortlist"
+                                    FontSize="11"
+                                    Margin="0,0,6,8"
+                                    Padding="10,6"
+                                    MinimumHeightRequest="35"
+                                    Clicked="OnShortlist"
+                                    Style="{StaticResource OutlineButton}"
+                                />
+                                <Button
+                                    Text="Book"
+                                    FontSize="11"
+                                    Margin="0,0,6,8"
+                                    Padding="10,6"
+                                    MinimumHeightRequest="35"
+                                    Clicked="OnBook"
+                                />
+                                <Button
+                                    Text="Decline"
+                                    FontSize="11"
+                                    Margin="0,0,6,8"
+                                    Padding="10,6"
+                                    MinimumHeightRequest="35"
+                                    Clicked="OnDecline"
+                                    Style="{StaticResource OutlineButton}"
+                                />
+                                <Button
+                                    Text="Message"
+                                    FontSize="11"
+                                    Margin="0,0,6,8"
+                                    Padding="10,6"
+                                    MinimumHeightRequest="35"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApplicantsViewModel}},Path=MessageCommand}"
+                                    CommandParameter="{Binding .}"
+                                    Style="{StaticResource OutlineButton}"
+                                />
+                                <Button
+                                    Text="Leave review"
+                                    FontSize="11"
+                                    Padding="10,6"
+                                    MinimumHeightRequest="35"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApplicantsViewModel}},Path=ReviewCommand}"
+                                    CommandParameter="{Binding .}"
+                                />
+                            </FlexLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

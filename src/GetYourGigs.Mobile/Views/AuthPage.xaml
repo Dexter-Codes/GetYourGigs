@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GetYourGigs.Mobile.Views.AuthPage"
+    x:DataType="vm:AuthViewModel"
+    Title="Welcome in"
+    xmlns:vm="clr-namespace:GetYourGigs.Mobile.ViewModels"
+>
+    <ScrollView>
+        <VerticalStackLayout Padding="23,20,23,40" Spacing="16">
+            <Label Text="ONE ACCOUNT. BOTH SIDES OF THE STAGE." Style="{StaticResource Eyebrow}" />
+            <Label
+                Text="A little introduction.&#10;A lot of possibility."
+                Style="{StaticResource Heading}"
+            />
+            <Label
+                Text="Sign in with your email. New here? Your account is created once your email is verified."
+                Style="{StaticResource Caption}"
+            />
+            <Border Padding="18" StrokeShape="RoundRectangle 22">
+                <VerticalStackLayout Spacing="14">
+                    <Button
+                        Text="Continue with Google"
+                        IsVisible="{Binding GoogleAvailable}"
+                        Command="{Binding BrowserSignInCommand}"
+                        Style="{StaticResource OutlineButton}"
+                    />
+                    <Label
+                        Text="Or sign in with your email"
+                        Style="{StaticResource Caption}"
+                        HorizontalTextAlignment="Center"
+                    />
+                    <Label Text="Your name" />
+                    <Border Style="{StaticResource InputBorder}">
+                        <Entry
+                            Text="{Binding Name}"
+                            Placeholder="How should we call you?"
+                            MaxLength="80"
+                        />
+                    </Border>
+                    <Label Text="Email address" />
+                    <Border Style="{StaticResource InputBorder}">
+                        <Entry
+                            Text="{Binding Email}"
+                            Keyboard="Email"
+                            Placeholder="you@example.com"
+                            MaxLength="254"
+                        />
+                    </Border>
+                    <Button Text="Send sign-in code" Command="{Binding RequestCodeCommand}" />
+                    <VerticalStackLayout IsVisible="{Binding CodeSent}" Spacing="13">
+                        <Border Padding="15" BackgroundColor="{StaticResource Sage}">
+                            <Label
+                                Text="{Binding DevelopmentNotice}"
+                                Style="{StaticResource Caption}"
+                            />
+                        </Border>
+                        <Label Text="Your six-digit code" />
+                        <Border Style="{StaticResource InputBorder}">
+                            <Entry
+                                Text="{Binding Code}"
+                                Keyboard="Numeric"
+                                MaxLength="6"
+                                Placeholder="000000"
+                            />
+                        </Border>
+                        <Button Text="Let’s get you in →" Command="{Binding VerifyCommand}" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+            <Border Padding="18" StrokeShape="RoundRectangle 22">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="API server" Style="{StaticResource Caption}" />
+                    <Border Style="{StaticResource InputBorder}">
+                        <Entry Text="{Binding ApiAddress}" Keyboard="Url" />
+                    </Border>
+                    <Button
+                        Text="Change API server"
+                        Style="{StaticResource OutlineButton}"
+                        Command="{Binding ConfigureServerCommand}"
+                    />
+                </VerticalStackLayout>
+            </Border>
+            <Label Text="{Binding Error}" TextColor="{StaticResource Danger}" FontSize="11" />
+            <ActivityIndicator
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource Accent}"
+            />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

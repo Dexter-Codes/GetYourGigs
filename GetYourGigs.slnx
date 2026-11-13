@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GetYourGigs.Api/GetYourGigs.Api.csproj" />
+    <Project Path="src/GetYourGigs.Client/GetYourGigs.Client.csproj" />
+    <Project Path="src/GetYourGigs.Contracts/GetYourGigs.Contracts.csproj" />
+    <Project Path="src/GetYourGigs.Mobile/GetYourGigs.Mobile.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GetYourGigs.Tests/GetYourGigs.Tests.csproj" />
+  </Folder>
+</Solution>

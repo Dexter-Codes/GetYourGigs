@@ -1,0 +1,232 @@
+@baseUrl = http://localhost:5080
+@token = paste-the-access-token-returned-by-verify
+@email = hirer@example.test
+@code = paste-the-six-digit-code
+@profileId = 00000000-0000-0000-0000-000000000001
+@gigId = 00000000-0000-0000-0000-000000000002
+@applicationId = 00000000-0000-0000-0000-000000000003
+@bookmarkId = 00000000-0000-0000-0000-000000000004
+@threadId = 00000000-0000-0000-0000-000000000005
+@recipientId = 00000000-0000-0000-0000-000000000006
+@reviewId = 00000000-0000-0000-0000-000000000007
+
+### Public configuration
+GET {{baseUrl}}/api/config
+
+### Request an email code; Development shows a clearly labeled test code
+POST {{baseUrl}}/api/auth/email/code
+Content-Type: application/json
+
+{"email":"{{email}}"}
+
+### Verify ownership, sign in, and copy accessToken above
+POST {{baseUrl}}/api/auth/email/verify
+Content-Type: application/json
+
+{"email":"{{email}}","code":"{{code}}","name":"Aanya Shah"}
+
+### Google ID token, obtained using your configured client ID
+POST {{baseUrl}}/api/auth/google
+Content-Type: application/json
+
+{"idToken":"replace-with-a-google-id-token"}
+
+### Mobile: create a one-minute grant after browser login
+POST {{baseUrl}}/api/auth/mobile/grant
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"challenge":"replace-with-a-43-character-base64url-SHA256-proof-key"}
+
+### Mobile: exchange with original verifier; invalid proof or replay returns 401
+POST {{baseUrl}}/api/auth/mobile/exchange
+Content-Type: application/json
+
+{"code":"replace-with-the-returned-code","verifier":"replace-with-the-original-native-verifier"}
+
+### Current account
+GET {{baseUrl}}/api/me/
+Authorization: Bearer {{token}}
+
+### Edit account name
+PUT {{baseUrl}}/api/me/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Aanya Shah"}
+
+### Switch context; the same account can perform both roles
+PUT {{baseUrl}}/api/me/mode
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"mode":"Working"}
+
+### Discover talent. Omit Authorization to check the three-item preview
+GET {{baseUrl}}/api/profiles?q=&category=&city=Mumbai&available=true&page=1
+Authorization: Bearer {{token}}
+
+### Public talent profile
+GET {{baseUrl}}/api/profiles/{{profileId}}
+
+### Current user's talent profile (null if not created)
+GET {{baseUrl}}/api/me/profile
+Authorization: Bearer {{token}}
+
+### Five-question onboarding / edit profile
+PUT {{baseUrl}}/api/me/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"headline":"Acoustic musician for intimate events","category":"Music & Performance","city":"Mumbai","rate":5000,"rateUnit":"per gig","bio":"I bring warm acoustic sets to weddings, small gatherings, and thoughtful celebrations.","skills":["Acoustic guitar","Live music"],"photos":[],"available":true}
+
+### Discover open gigs
+GET {{baseUrl}}/api/gigs?city=Mumbai&page=1
+Authorization: Bearer {{token}}
+
+### Public gig details (missing IDs return 404)
+GET {{baseUrl}}/api/gigs/{{gigId}}
+
+### Own posted gigs, independent of current mode
+GET {{baseUrl}}/api/me/gigs
+Authorization: Bearer {{token}}
+
+### Create a gig; dates use ISO calendar dates; null is unspecified
+POST {{baseUrl}}/api/gigs/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"title":"Acoustic band for a family celebration","category":"Music & Performance","city":"Mumbai","description":"We need a warm acoustic set for a small family celebration. Please share your experience and availability.","date":null,"budget":15000,"photos":[]}
+
+### Edit your open gig (dates cannot change once people have applied)
+PUT {{baseUrl}}/api/gigs/{{gigId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"title":"Acoustic band for a family celebration","category":"Music & Performance","city":"Mumbai","description":"Updated brief: an intimate unplugged set for a small family celebration. Let’s discuss the details.","date":null,"budget":16000,"photos":[]}
+
+### Close your open gig, notifying active applicants
+POST {{baseUrl}}/api/gigs/{{gigId}}/close
+Authorization: Bearer {{token}}
+
+### Today's three-application allowance (Asia/Kolkata)
+GET {{baseUrl}}/api/me/allowance
+Authorization: Bearer {{token}}
+
+### Apply as another account with a talent profile; fourth application returns 429
+POST {{baseUrl}}/api/gigs/{{gigId}}/applications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"message":"I have experience with intimate acoustic events and would love to discuss your celebration.","expectedPrice":12000}
+
+### Own applications
+GET {{baseUrl}}/api/me/applications
+Authorization: Bearer {{token}}
+
+### One application: applicant or owning hirer only
+GET {{baseUrl}}/api/applications/{{applicationId}}
+Authorization: Bearer {{token}}
+
+### Applicants to your gig; another hirer gets 403
+GET {{baseUrl}}/api/gigs/{{gigId}}/applications
+Authorization: Bearer {{token}}
+
+### Hirer status change: Shortlisted, Booked, or Declined
+PUT {{baseUrl}}/api/applications/{{applicationId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"status":"Booked"}
+
+### Applicant withdrawal; does not refund daily allowance
+POST {{baseUrl}}/api/applications/{{applicationId}}/withdraw
+Authorization: Bearer {{token}}
+
+### Hirer explicitly confirms completion (future dates return 409)
+POST {{baseUrl}}/api/gigs/{{gigId}}/complete
+Authorization: Bearer {{token}}
+
+### Completed-only, owning-hirer review; repeats return 409
+POST {{baseUrl}}/api/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"applicationId":"{{applicationId}}","rating":5,"text":"A thoughtful performance and great communication throughout the celebration."}
+
+### Public genuine reviews for a talent profile
+GET {{baseUrl}}/api/profiles/{{profileId}}/reviews
+
+### One public review
+GET {{baseUrl}}/api/reviews/{{reviewId}}
+
+### Saved talent and gigs
+GET {{baseUrl}}/api/me/bookmarks
+Authorization: Bearer {{token}}
+
+### Save a profile; repeated saves are idempotent
+POST {{baseUrl}}/api/me/bookmarks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"targetType":"profile","targetId":"{{profileId}}"}
+
+### Read your own bookmark
+GET {{baseUrl}}/api/me/bookmarks/{{bookmarkId}}
+Authorization: Bearer {{token}}
+
+### Remove your bookmark
+DELETE {{baseUrl}}/api/me/bookmarks/{{bookmarkId}}
+Authorization: Bearer {{token}}
+
+### Inbox
+GET {{baseUrl}}/api/threads/
+Authorization: Bearer {{token}}
+
+### Start or resume a matching conversation (gigId can be null)
+POST {{baseUrl}}/api/threads/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"recipientId":"{{recipientId}}","gigId":null,"message":"Hello! Could we discuss your availability for an upcoming project?"}
+
+### Participants only; latest 200 messages, marks returned incoming messages read
+GET {{baseUrl}}/api/threads/{{threadId}}/messages
+Authorization: Bearer {{token}}
+
+### Send a reply
+POST {{baseUrl}}/api/threads/{{threadId}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"text":"Thanks for getting in touch. Tell me a little more about your project."}
+
+### Activity updates
+GET {{baseUrl}}/api/me/updates
+Authorization: Bearer {{token}}
+
+### Mark all existing activity read
+POST {{baseUrl}}/api/me/updates/read
+Authorization: Bearer {{token}}
+
+### Upload a JPEG/PNG/WebP up to 5 MB. Replace the file path before sending.
+POST {{baseUrl}}/api/uploads
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=GygBoundary
+
+--GygBoundary
+Content-Disposition: form-data; name="file"; filename="portfolio.jpg"
+Content-Type: image/jpeg
+
+< ./portfolio.jpg
+--GygBoundary--
+
+### Liveness
+GET {{baseUrl}}/health
+
+### Public image (replace with the path returned by an upload).
+# Supabase mode redirects to persistent public storage; Local mode serves the file.
+GET {{baseUrl}}/uploads/00000000000000000000000000000000.jpg
+
+### Development OpenAPI schema
+GET {{baseUrl}}/openapi/v1.json

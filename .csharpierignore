@@ -1,0 +1,5 @@
+.reference/
+.local/
+**/bin/
+**/obj/
+**/wwwroot/

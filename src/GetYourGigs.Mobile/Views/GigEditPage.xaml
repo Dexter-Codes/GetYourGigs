@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:ns2="clr-namespace:GetYourGigs.Mobile.Views"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GetYourGigs.Mobile.Views.GigEditPage"
+    x:DataType="vm:GigEditViewModel"
+    Title="Post a gig"
+    xmlns:views="clr-namespace:GetYourGigs.Mobile.Views"
+    xmlns:vm="clr-namespace:GetYourGigs.Mobile.ViewModels"
+>
+    <ScrollView>
+        <VerticalStackLayout Padding="23,20,23,40" Spacing="16">
+            <Label Text="MAKE ROOM FOR SOMETHING GREAT" Style="{StaticResource Eyebrow}" />
+            <Label Text="Post a gig" Style="{StaticResource Heading}" />
+            <Label Text="{Binding StepLabel}" Style="{StaticResource Caption}" />
+            <BoxView HeightRequest="3" BackgroundColor="{StaticResource Accent}" />
+            <VerticalStackLayout IsVisible="{Binding StepOne}" Spacing="15">
+                <Label
+                    Text="What do you need?"
+                    FontFamily="Manrope"
+                    FontSize="25"
+                    FontAttributes="Bold"
+                />
+                <Label Text="Pick a category to get started." Style="{StaticResource Caption}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker
+                        Title="Choose a category"
+                        ItemsSource="{Binding CategoryOptions}"
+                        SelectedItem="{Binding Category}"
+                    />
+                </Border>
+                <Border Style="{StaticResource InputBorder}">
+                    <Entry
+                        Text="{Binding Title}"
+                        Placeholder="A title for your gig"
+                        MaxLength="120"
+                    />
+                </Border>
+            </VerticalStackLayout>
+            <VerticalStackLayout IsVisible="{Binding StepTwo}" Spacing="15">
+                <Label
+                    Text="Event details"
+                    FontFamily="Manrope"
+                    FontSize="25"
+                    FontAttributes="Bold"
+                />
+                <Label Text="Tell us more about what you need." Style="{StaticResource Caption}" />
+                <Label Text="Location" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Entry
+                        Text="{Binding City}"
+                        Placeholder="City, venue area, or Remote"
+                        MaxLength="80"
+                    />
+                </Border>
+                <HorizontalStackLayout Spacing="10">
+                    <Switch IsToggled="{Binding HasDate}" OnColor="{StaticResource Accent}" />
+                    <Label Text="I have a date in mind" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <Border Style="{StaticResource InputBorder}" IsVisible="{Binding HasDate}">
+                    <DatePicker Date="{Binding Date}" />
+                </Border>
+                <Label Text="Budget (₹, 0 = open to discussing)" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Entry Text="{Binding Budget}" Keyboard="Numeric" />
+                </Border>
+                <Label Text="The brief" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Editor
+                        Text="{Binding Description}"
+                        Placeholder="The event, the project, the right kind of person…"
+                        MaxLength="4000"
+                    />
+                </Border>
+                <ns2:PhotoEditorView />
+            </VerticalStackLayout>
+            <VerticalStackLayout IsVisible="{Binding StepThree}" Spacing="15">
+                <Label
+                    Text="Review &amp; Post"
+                    FontFamily="Manrope"
+                    FontSize="25"
+                    FontAttributes="Bold"
+                />
+                <Border Padding="20">
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="{Binding Category}" Style="{StaticResource Eyebrow}" />
+                        <Label
+                            Text="{Binding Title}"
+                            FontFamily="Manrope"
+                            FontSize="25"
+                            FontAttributes="Bold"
+                        />
+                        <Label Text="{Binding City}" />
+                        <Label Text="{Binding Budget, StringFormat='Budget: ₹{0}'}" />
+                        <Label Text="{Binding Description}" Style="{StaticResource Caption}" />
+                    </VerticalStackLayout>
+                </Border>
+                <Label
+                    Text="Your gig will be visible to relevant talent immediately."
+                    Style="{StaticResource Caption}"
+                />
+            </VerticalStackLayout>
+            <Button Text="{Binding NextLabel}" Command="{Binding NextCommand}" />
+            <Button
+                Text="Back"
+                Style="{StaticResource OutlineButton}"
+                Command="{Binding BackCommand}"
+            />
+            <Label Text="{Binding Error}" TextColor="{StaticResource Danger}" FontSize="11" />
+            <ActivityIndicator
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource Accent}"
+            />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

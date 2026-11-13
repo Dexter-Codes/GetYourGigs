@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GetYourGigs.Mobile.MainPage"
+    x:DataType="vm:MainViewModel"
+    NavigationPage.HasNavigationBar="False"
+    xmlns:vm="clr-namespace:GetYourGigs.Mobile.ViewModels"
+    xmlns:models="clr-namespace:GetYourGigs.Mobile.Models"
+>
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <Grid Padding="21,15,17,8" ColumnDefinitions="*,Auto,Auto">
+            <VerticalStackLayout Spacing="1">
+                <Label
+                    Text="Get Your Gigs"
+                    FontFamily="Manrope"
+                    FontSize="22"
+                    FontAttributes="Bold"
+                />
+                <Label
+                    Text="Good people. Great work."
+                    FontSize="11"
+                    CharacterSpacing="0"
+                    TextColor="{StaticResource Muted}"
+                />
+            </VerticalStackLayout>
+            <ImageButton
+                Grid.Column="1"
+                Command="{Binding NavigateCommand}"
+                CommandParameter="Saved"
+                SemanticProperties.Description="Saved listings"
+                Source="nav_heart.png"
+                Margin="0,0,8,0"
+            />
+            <ImageButton
+                Grid.Column="2"
+                Source="nav_bell.png"
+                Command="{Binding NavigateCommand}"
+                CommandParameter="Updates"
+                SemanticProperties.Description="Updates"
+            />
+        </Grid>
+        <Grid Grid.Row="1" Padding="21,5,21,12" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <HorizontalStackLayout Spacing="5">
+                <Button
+                    Text="Hiring"
+                    FontSize="11"
+                    MinimumHeightRequest="44"
+                    Padding="15,5"
+                    Command="{Binding SwitchModeCommand}"
+                    CommandParameter="Hiring"
+                    Style="{StaticResource OutlineButton}"
+                >
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsHiring}" Value="True">
+                            <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
+                            <Setter Property="TextColor" Value="{StaticResource OnAccent}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button
+                    Text="Working"
+                    FontSize="11"
+                    MinimumHeightRequest="44"
+                    Padding="15,5"
+                    Command="{Binding SwitchModeCommand}"
+                    CommandParameter="Working"
+                    Style="{StaticResource OutlineButton}"
+                >
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsHiring}" Value="False">
+                            <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
+                            <Setter Property="TextColor" Value="{StaticResource OnAccent}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+            </HorizontalStackLayout>
+            <Button
+                Grid.Column="1"
+                Text="{Binding AccountLabel}"
+                BackgroundColor="Transparent"
+                TextColor="{StaticResource Muted}"
+                FontSize="11"
+                MinimumHeightRequest="44"
+                Padding="5"
+                Command="{Binding SignInCommand}"
+            />
+        </Grid>
+        <RefreshView
+            Grid.Row="2"
+            Command="{Binding RefreshCommand}"
+            IsRefreshing="{Binding IsRefreshing}"
+        >
+            <CollectionView
+                ItemsSource="{Binding Items}"
+                SelectionMode="None"
+                Margin="0"
+                ItemSizingStrategy="MeasureAllItems"
+            >
+                <CollectionView.Header>
+                    <VerticalStackLayout Padding="21,0" Spacing="16">
+                        <Grid
+                            IsVisible="{Binding ShowHero}"
+                            ColumnDefinitions="1.65*,*"
+                            RowDefinitions="Auto,Auto"
+                            ColumnSpacing="10"
+                            RowSpacing="10"
+                            Margin="0,6,0,0"
+                        >
+                            <Border
+                                Grid.RowSpan="2"
+                                BackgroundColor="{StaticResource AccentSoft}"
+                                StrokeThickness="0"
+                                Padding="18"
+                                StrokeShape="RoundRectangle 24"
+                            >
+                                <VerticalStackLayout Spacing="12">
+                                    <Label
+                                        Text="A LITTLE POSSIBILITY"
+                                        Style="{StaticResource Eyebrow}"
+                                        FontSize="9"
+                                    />
+                                    <Label
+                                        Text="Find your&#10;next thing."
+                                        Style="{StaticResource Heading}"
+                                        FontSize="25"
+                                    />
+                                    <Label
+                                        Text="Talent, gigs and new connections."
+                                        Style="{StaticResource Caption}"
+                                    />
+                                    <Image
+                                        Source="hero_spark.png"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        HorizontalOptions="End"
+                                    />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Button
+                                Grid.Column="1"
+                                Grid.Row="0"
+                                Text="My gigs"
+                                ImageSource="nav_gigs.png"
+                                ContentLayout="Top,8"
+                                BackgroundColor="{StaticResource Violet}"
+                                TextColor="{StaticResource Ink}"
+                                CornerRadius="22"
+                                MinimumHeightRequest="90"
+                                Padding="12"
+                                FontSize="15"
+                                Command="{Binding NavigateCommand}"
+                                CommandParameter="Gigs"
+                            />
+                            <Button
+                                Grid.Column="1"
+                                Grid.Row="1"
+                                Text="Saved"
+                                ImageSource="nav_heart.png"
+                                ContentLayout="Top,8"
+                                BackgroundColor="{StaticResource Peach}"
+                                TextColor="{StaticResource Ink}"
+                                CornerRadius="22"
+                                MinimumHeightRequest="90"
+                                Padding="12"
+                                FontSize="15"
+                                Command="{Binding NavigateCommand}"
+                                CommandParameter="Saved"
+                            />
+                        </Grid>
+                        <VerticalStackLayout IsVisible="{Binding ShowHero}" Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Border Padding="10,0" Style="{StaticResource InputBorder}">
+                                    <Entry
+                                        Text="{Binding Search}"
+                                        Placeholder="What do you need?"
+                                        FontSize="12"
+                                        ClearButtonVisibility="WhileEditing"
+                                    />
+                                </Border>
+                                <Border
+                                    Grid.Column="1"
+                                    Padding="10,0"
+                                    WidthRequest="105"
+                                    Style="{StaticResource InputBorder}"
+                                >
+                                    <Entry
+                                        Text="{Binding City}"
+                                        Placeholder="Near you"
+                                        FontSize="11"
+                                    />
+                                </Border>
+                            </Grid>
+                            <ScrollView
+                                Orientation="Horizontal"
+                                HorizontalScrollBarVisibility="Never"
+                            >
+                                <HorizontalStackLayout
+                                    BindableLayout.ItemsSource="{Binding Categories}"
+                                    Spacing="8"
+                                >
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:CategoryItem">
+                                            <ContentView
+                                                HeightRequest="76"
+                                                Margin="0"
+                                                ControlTemplate="{StaticResource BentoSurface}"
+                                                WidthRequest="100"
+                                            >
+                                                <ContentView.GestureRecognizers>
+                                                    <TapGestureRecognizer
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MainViewModel}},Path=SelectCategoryCommand}"
+                                                        CommandParameter="{Binding .}"
+                                                    />
+                                                </ContentView.GestureRecognizers>
+                                                <VerticalStackLayout
+                                                    Spacing="5"
+                                                    VerticalOptions="Center"
+                                                    Padding="6"
+                                                >
+                                                    <Image
+                                                        Source="{Binding Icon}"
+                                                        HeightRequest="22"
+                                                        WidthRequest="22"
+                                                        HorizontalOptions="Center"
+                                                    />
+                                                    <Label
+                                                        Text="{Binding DisplayTitle}"
+                                                        FontSize="11"
+                                                        HorizontalTextAlignment="Center"
+                                                        MaxLines="2"
+                                                        FontAttributes="Bold"
+                                                    />
+                                                </VerticalStackLayout>
+                                            </ContentView>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </HorizontalStackLayout>
+                            </ScrollView>
+                            <Label
+                                Text="{Binding SelectedCategory}"
+                                Style="{StaticResource Eyebrow}"
+                                FontSize="10"
+                            >
+                                <Label.Triggers>
+                                    <DataTrigger
+                                        TargetType="Label"
+                                        Binding="{Binding SelectedCategory}"
+                                        Value=""
+                                    >
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                            <Label
+                                Text="{Binding ResultLabel}"
+                                Style="{StaticResource Caption}"
+                                FontSize="11"
+                            />
+                        </VerticalStackLayout>
+                        <Label
+                            Text="{Binding Heading}"
+                            Style="{StaticResource Heading}"
+                            FontSize="23"
+                        />
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            IsVisible="{Binding IsBusy}"
+                            Color="{StaticResource Accent}"
+                        />
+                        <Label
+                            Text="{Binding Error}"
+                            TextColor="{StaticResource Danger}"
+                            FontSize="11"
+                        >
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label" Binding="{Binding Error}" Value="">
+                                    <Setter Property="IsVisible" Value="False" />
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                        <Label
+                            Text="Nothing here yet. Your next connection could be one hello away."
+                            IsVisible="{Binding Empty}"
+                            Style="{StaticResource Caption}"
+                            Margin="0,10"
+                        />
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ListingItem">
+                        <ContentView Margin="21,6" ControlTemplate="{StaticResource BentoSurface}">
+                            <ContentView.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MainViewModel}},Path=OpenCommand}"
+                                    CommandParameter="{Binding .}"
+                                />
+                            </ContentView.GestureRecognizers>
+                            <Grid
+                                ColumnDefinitions="64,*,48"
+                                ColumnSpacing="10"
+                                Padding="16"
+                                RowDefinitions="Auto,Auto"
+                                RowSpacing="12"
+                            >
+                                <Border
+                                    StrokeThickness="0"
+                                    WidthRequest="64"
+                                    HeightRequest="80"
+                                    StrokeShape="RoundRectangle 9"
+                                    BackgroundColor="{StaticResource AccentSoft}"
+                                >
+                                    <Grid>
+                                        <Label
+                                            Text="{Binding Initial}"
+                                            FontFamily="Manrope"
+                                            FontSize="31"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            TextColor="{StaticResource Accent}"
+                                            FontAttributes="Bold"
+                                        />
+                                        <Image
+                                            IsVisible="{Binding HasPhoto}"
+                                            Source="{Binding Photo, Converter={StaticResource MediaUrl}}"
+                                            Aspect="AspectFill"
+                                        />
+                                    </Grid>
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label
+                                        Text="{Binding Title}"
+                                        FontFamily="Manrope"
+                                        FontSize="16"
+                                        MaxLines="2"
+                                        LineBreakMode="TailTruncation"
+                                        FontAttributes="Bold"
+                                    />
+                                    <Label
+                                        Text="{Binding SampleLabel}"
+                                        FontSize="11"
+                                        TextColor="{StaticResource Muted}"
+                                    />
+                                    <Label
+                                        Text="{Binding Subtitle}"
+                                        Style="{StaticResource Caption}"
+                                        FontSize="11"
+                                        MaxLines="2"
+                                        LineBreakMode="TailTruncation"
+                                    />
+                                    <Label
+                                        Text="{Binding Meta}"
+                                        FontSize="11"
+                                        TextColor="{StaticResource Muted}"
+                                        MaxLines="2"
+                                        LineBreakMode="TailTruncation"
+                                    />
+                                </VerticalStackLayout>
+                                <ImageButton
+                                    Grid.Column="2"
+                                    IsVisible="{Binding CanSave}"
+                                    VerticalOptions="Start"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MainViewModel}},Path=SaveCommand}"
+                                    CommandParameter="{Binding .}"
+                                    SemanticProperties.Description="{Binding SaveDescription}"
+                                    Source="{Binding SaveIcon}"
+                                />
+                                <VerticalStackLayout Spacing="5" Grid.Row="1" Grid.ColumnSpan="3">
+                                    <Label
+                                        Text="{Binding Price}"
+                                        FontSize="13"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource Accent}"
+                                    />
+                                    <Label
+                                        Text="{Binding Status}"
+                                        FontSize="11"
+                                        TextColor="{StaticResource Accent}"
+                                    />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </ContentView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <VerticalStackLayout Padding="21,18,21,30" Spacing="10">
+                        <Button
+                            Text="Show more opportunities"
+                            IsVisible="{Binding CanLoadMore}"
+                            Command="{Binding LoadMoreCommand}"
+                            Style="{StaticResource OutlineButton}"
+                        />
+                        <Border
+                            IsVisible="{Binding ShowGate}"
+                            Padding="22"
+                            BackgroundColor="{StaticResource AccentSoft}"
+                        >
+                            <VerticalStackLayout Spacing="11">
+                                <Label
+                                    Text="More with your name on it."
+                                    FontFamily="Manrope"
+                                    FontSize="25"
+                                    HorizontalTextAlignment="Center"
+                                    FontAttributes="Bold"
+                                />
+                                <Label
+                                    Text="Sign in to explore every gig and meet all the talent. One account. Both sides of the stage."
+                                    Style="{StaticResource Caption}"
+                                    HorizontalTextAlignment="Center"
+                                />
+                                <Button
+                                    Text="Join the community →"
+                                    Command="{Binding SignInCommand}"
+                                />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Label
+                            Text="GOOD PEOPLE. GREAT WORK."
+                            FontSize="11"
+                            CharacterSpacing="2"
+                            TextColor="{StaticResource Muted}"
+                            HorizontalTextAlignment="Center"
+                            Margin="0,15"
+                        />
+                    </VerticalStackLayout>
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+        <ContentView
+            Grid.Row="3"
+            ControlTemplate="{StaticResource BentoSurface}"
+            Margin="16,8,16,8"
+        >
+            <Grid ColumnDefinitions="*,*,*,*,*" Padding="8,10">
+                <VerticalStackLayout
+                    Grid.Column="0"
+                    Spacing="3"
+                    VerticalOptions="Center"
+                    Padding="0,2"
+                    MinimumHeightRequest="48"
+                    MinimumWidthRequest="48"
+                >
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Home"
+                        />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Image Source="nav_home.png" WidthRequest="20" HeightRequest="20">
+                        <Image.Triggers>
+                            <DataTrigger TargetType="Image" Binding="{Binding Tab}" Value="Home">
+                                <Setter Property="Source" Value="nav_home_active.png" />
+                            </DataTrigger>
+                        </Image.Triggers>
+                    </Image>
+                    <Label
+                        Text="Home"
+                        FontSize="11"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource Muted}"
+                    >
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding Tab}" Value="Home">
+                                <Setter Property="TextColor" Value="{StaticResource Accent}" />
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                </VerticalStackLayout>
+                <VerticalStackLayout
+                    Grid.Column="1"
+                    Spacing="3"
+                    VerticalOptions="Center"
+                    Padding="0,2"
+                    MinimumHeightRequest="48"
+                    MinimumWidthRequest="48"
+                >
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Gigs"
+                        />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Image Source="nav_gigs.png" WidthRequest="20" HeightRequest="20">
+                        <Image.Triggers>
+                            <DataTrigger TargetType="Image" Binding="{Binding Tab}" Value="Gigs">
+                                <Setter Property="Source" Value="nav_gigs_active.png" />
+                            </DataTrigger>
+                        </Image.Triggers>
+                    </Image>
+                    <Label
+                        Text="Gigs"
+                        FontSize="11"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource Muted}"
+                    >
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding Tab}" Value="Gigs">
+                                <Setter Property="TextColor" Value="{StaticResource Accent}" />
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                </VerticalStackLayout>
+                <Button
+                    Grid.Column="2"
+                    Text="＋"
+                    CornerRadius="18"
+                    WidthRequest="50"
+                    HeightRequest="50"
+                    FontSize="26"
+                    Padding="0"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="Post"
+                    SemanticProperties.Description="Post a gig"
+                />
+                <VerticalStackLayout
+                    Grid.Column="3"
+                    Spacing="3"
+                    VerticalOptions="Center"
+                    Padding="0,2"
+                    MinimumHeightRequest="48"
+                    MinimumWidthRequest="48"
+                >
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Inbox"
+                        />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Image Source="nav_message.png" WidthRequest="20" HeightRequest="20">
+                        <Image.Triggers>
+                            <DataTrigger TargetType="Image" Binding="{Binding Tab}" Value="Inbox">
+                                <Setter Property="Source" Value="nav_message_active.png" />
+                            </DataTrigger>
+                        </Image.Triggers>
+                    </Image>
+                    <Label
+                        Text="Messages"
+                        FontSize="11"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource Muted}"
+                    >
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding Tab}" Value="Inbox">
+                                <Setter Property="TextColor" Value="{StaticResource Accent}" />
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                </VerticalStackLayout>
+                <VerticalStackLayout
+                    Grid.Column="4"
+                    Spacing="3"
+                    VerticalOptions="Center"
+                    Padding="0,2"
+                    MinimumHeightRequest="48"
+                    MinimumWidthRequest="48"
+                >
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Profile"
+                        />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Image Source="nav_user.png" WidthRequest="20" HeightRequest="20">
+                        <Image.Triggers>
+                            <DataTrigger TargetType="Image" Binding="{Binding Tab}" Value="Profile">
+                                <Setter Property="Source" Value="nav_user_active.png" />
+                            </DataTrigger>
+                        </Image.Triggers>
+                    </Image>
+                    <Label
+                        Text="Profile"
+                        FontSize="11"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource Muted}"
+                    >
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding Tab}" Value="Profile">
+                                <Setter Property="TextColor" Value="{StaticResource Accent}" />
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                </VerticalStackLayout>
+            </Grid>
+        </ContentView>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Get Your Gigs — iPhone 13 (USB)",
+      "type": "maui",
+      "request": "launch",
+      "project": "/Users/anirbangupta/GetYourGigs/src/GetYourGigs.Mobile/GetYourGigs.Mobile.csproj",
+      "configuration": "Debug",
+      "targetFramework": "net10.0-ios",
+      "connectionType": "usb"
+    }
+  ]
+}

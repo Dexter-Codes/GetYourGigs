@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GetYourGigs.Mobile.Views.DetailPage"
+    x:DataType="vm:DetailViewModel"
+    Title="The details"
+    xmlns:vm="clr-namespace:GetYourGigs.Mobile.ViewModels"
+>
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView>
+            <VerticalStackLayout Padding="22,12,22,30" Spacing="17">
+                <Border HeightRequest="215" Padding="0" StrokeThickness="0">
+                    <Grid BackgroundColor="{StaticResource AccentSoft}">
+                        <Label
+                            Text="✳"
+                            FontSize="90"
+                            TextColor="{StaticResource Accent}"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                        />
+                        <Image
+                            Source="{Binding Photo, Converter={StaticResource MediaUrl}}"
+                            Aspect="AspectFill"
+                        />
+                    </Grid>
+                </Border>
+                <Label Text="{Binding Category}" Style="{StaticResource Eyebrow}" />
+                <Label Text="{Binding Title}" Style="{StaticResource Heading}" />
+                <HorizontalStackLayout Spacing="10">
+                    <Label Text="{Binding City}" Style="{StaticResource Caption}" />
+                    <Border
+                        BackgroundColor="{StaticResource Sage}"
+                        Padding="8,3"
+                        StrokeThickness="0"
+                    >
+                        <Label Text="{Binding Status}" FontSize="11" TextColor="#235C48" />
+                    </Border>
+                </HorizontalStackLayout>
+                <Label Text="{Binding Date}" Style="{StaticResource Caption}" />
+                <Label Text="{Binding Price}" FontSize="17" FontAttributes="Bold" />
+                <BoxView HeightRequest="1" BackgroundColor="{StaticResource Line}" />
+                <Label Text="The story" FontFamily="Manrope" FontSize="22" FontAttributes="Bold" />
+                <Label Text="{Binding Description}" LineHeight="1.5" />
+                <Button
+                    Text="Meet your applicants →"
+                    IsVisible="{Binding ShowApplicants}"
+                    Command="{Binding ApplicantsCommand}"
+                />
+                <Button
+                    Text="Edit gig"
+                    IsVisible="{Binding ShowEdit}"
+                    Command="{Binding EditCommand}"
+                    Style="{StaticResource OutlineButton}"
+                />
+                <Button
+                    Text="Confirm the gig is completed"
+                    IsVisible="{Binding ShowComplete}"
+                    Clicked="OnComplete"
+                />
+                <Button
+                    Text="Close this gig"
+                    IsVisible="{Binding ShowEdit}"
+                    Clicked="OnCloseGig"
+                    Style="{StaticResource OutlineButton}"
+                />
+                <Button
+                    Text="Withdraw from this gig"
+                    IsVisible="{Binding ShowWithdraw}"
+                    Clicked="OnWithdraw"
+                    Style="{StaticResource OutlineButton}"
+                />
+                <Button
+                    Text="Save for later ♡"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource OutlineButton}"
+                />
+                <VerticalStackLayout IsVisible="{Binding IsProfile}" Spacing="12">
+                    <Label
+                        Text="Reviews from completed gigs"
+                        FontFamily="Manrope"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                    />
+                    <Label Text="{Binding Reviews}" Style="{StaticResource Caption}" />
+                </VerticalStackLayout>
+                <Label Text="{Binding Error}" TextColor="{StaticResource Danger}" FontSize="11" />
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    IsVisible="{Binding IsBusy}"
+                    Color="{StaticResource Accent}"
+                />
+            </VerticalStackLayout>
+        </ScrollView>
+        <Grid
+            Grid.Row="1"
+            ColumnDefinitions="*,*"
+            Padding="21,12"
+            ColumnSpacing="10"
+            BackgroundColor="{StaticResource Surface}"
+        >
+            <Button
+                Text="Message"
+                Style="{StaticResource OutlineButton}"
+                IsVisible="{Binding ShowMessage}"
+                Command="{Binding MessageCommand}"
+            />
+            <Button
+                Grid.Column="1"
+                Text="Apply / Connect →"
+                IsVisible="{Binding ShowApply}"
+                Command="{Binding ApplyCommand}"
+            />
+        </Grid>
+    </Grid>
+</ContentPage>

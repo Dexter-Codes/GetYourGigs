@@ -1,0 +1,4 @@
+{
+  "maui.configuration.useLaunchJsonConfigurations": true,
+  "dotnet.defaultSolution": "GetYourGigs.slnx"
+}

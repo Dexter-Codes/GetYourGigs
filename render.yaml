@@ -1,0 +1,34 @@
+# Testing service only. No database is created on Render.
+services:
+  - type: web
+    name: getyourgigs-testing
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "10000"
+      - key: GYG_MIGRATE_ON_START
+        value: "true"
+      - key: Hosting__RenderProxy
+        value: "true"
+      - key: ConnectionStrings__Database
+        sync: false
+      - key: Jwt__Key
+        generateValue: true
+      - key: Google__ClientId
+        sync: false
+      - key: Storage__Provider
+        value: Supabase
+      - key: Storage__Supabase__Url
+        sync: false
+      - key: Storage__Supabase__ServiceRoleKey
+        sync: false
+      - key: Storage__Supabase__Bucket
+        value: gyg-photos

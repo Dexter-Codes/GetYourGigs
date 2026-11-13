@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GetYourGigs.Mobile.Views.AccountPage"
+    x:DataType="vm:AccountViewModel"
+    Title="Your account"
+    xmlns:vm="clr-namespace:GetYourGigs.Mobile.ViewModels"
+>
+    <ScrollView>
+        <VerticalStackLayout Padding="23,20,23,40" Spacing="16">
+            <Label Text="ONE ACCOUNT. EVERY POSSIBILITY." Style="{StaticResource Eyebrow}" />
+            <Label Text="Make yourself at home." Style="{StaticResource Heading}" />
+            <Label Text="{Binding Email}" Style="{StaticResource Caption}" />
+            <Label
+                Text="{Binding Context, StringFormat='You’re currently in {0} mode.'}"
+                Style="{StaticResource Caption}"
+            />
+            <Border Padding="18" StrokeShape="RoundRectangle 22">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="Your display name" />
+                    <Border Style="{StaticResource InputBorder}">
+                        <Entry Text="{Binding Name}" MaxLength="80" />
+                    </Border>
+                    <Button Text="Save name" Command="{Binding SaveCommand}" />
+                    <Button
+                        Text="Your talent profile"
+                        Style="{StaticResource OutlineButton}"
+                        Command="{Binding ProfileCommand}"
+                    />
+                    <Button
+                        Text="Sign out on this device"
+                        Style="{StaticResource OutlineButton}"
+                        Command="{Binding SignOutCommand}"
+                    />
+                </VerticalStackLayout>
+            </Border>
+            <Border Padding="18" StrokeShape="RoundRectangle 22">
+                <VerticalStackLayout Spacing="14">
+                    <Label
+                        Text="API connection"
+                        FontFamily="Manrope"
+                        FontSize="23"
+                        FontAttributes="Bold"
+                    />
+                    <Label
+                        Text="Use your server’s HTTPS address on a physical device. Changing servers signs you out."
+                        Style="{StaticResource Caption}"
+                    />
+                    <Border Style="{StaticResource InputBorder}">
+                        <Entry Text="{Binding ApiAddress}" Keyboard="Url" />
+                    </Border>
+                    <Button
+                        Text="Change API server"
+                        Style="{StaticResource OutlineButton}"
+                        Command="{Binding ConfigureCommand}"
+                    />
+                </VerticalStackLayout>
+            </Border>
+            <Label Text="{Binding Error}" TextColor="{StaticResource Danger}" FontSize="11" />
+            <ActivityIndicator
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource Accent}"
+            />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

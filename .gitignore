@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+.local/
+.reference/
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/TestResults/
+.DS_Store
+**/.data/
+**/wwwroot/
+.csharpier_cache
