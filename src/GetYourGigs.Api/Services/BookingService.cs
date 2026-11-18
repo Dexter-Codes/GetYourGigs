@@ -5,30 +5,6 @@ using static GetYourGigs.Api.Services.ServiceRules;
 
 namespace GetYourGigs.Api.Services;
 
-public interface IBookingService
-{
-    Task<ApplicationResponse> ApplicationAsync(Guid user, Guid id, CancellationToken ct);
-    Task<ReviewResponse> ReviewByIdAsync(Guid id, CancellationToken ct);
-    Task<AllowanceResponse> AllowanceAsync(Guid user, CancellationToken ct);
-    Task<ApplicationResponse> ApplyAsync(
-        Guid user,
-        Guid gigId,
-        ApplyRequest request,
-        CancellationToken ct
-    );
-    Task<ApplicationResponse[]> ApplicationsAsync(Guid user, Guid? gigId, CancellationToken ct);
-    Task<ApplicationResponse> ChangeAsync(
-        Guid user,
-        Guid id,
-        ApplicationActionRequest request,
-        CancellationToken ct
-    );
-    Task<ApplicationResponse> CancelAsync(Guid user, Guid id, CancellationToken ct);
-    Task<GigResponse> CompleteAsync(Guid user, Guid id, CancellationToken ct);
-    Task<ReviewResponse> ReviewAsync(Guid user, CreateReviewRequest request, CancellationToken ct);
-    Task<ReviewResponse[]> ReviewsAsync(Guid profileId, CancellationToken ct);
-}
-
 public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBookingService
 {
     private IQueryable<GigApplication> Applications =>
@@ -84,7 +60,7 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
         CancellationToken ct
     )
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.LockAccountAsync(user, ct);
         await db.LockGigAsync(gigId, ct);
         var gig = Found(
@@ -124,7 +100,7 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
                 "You are already booked on this date.",
                 409
             );
-        var app = new GigApplication
+        var application = new GigApplication
         {
             GigId = gigId,
             Gig = gig,
@@ -138,17 +114,17 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
             ExpectedPrice = request.ExpectedPrice,
             ApplicationDay = Today(time),
         };
-        db.Applications.Add(app);
+        db.Applications.Add(application);
         db.Notify(
             gig.OwnerId,
             "application",
-            $"{app.Applicant.Name} applied to {gig.Title}.",
+            $"{application.Applicant.Name} applied to {gig.Title}.",
             gig.Id
         );
         db.Notify(user, "application", $"Your application to {gig.Title} was sent.", gig.Id);
         await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
-        return app.ToResponse();
+        await transaction.CommitAsync(ct);
+        return application.ToResponse();
     }
 
     public async Task<ApplicationResponse[]> ApplicationsAsync(
@@ -188,14 +164,14 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
         var pointer = Found(
             await db.Applications.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct)
         );
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.LockAccountAsync(pointer.ApplicantId, ct);
         await db.LockGigAsync(pointer.GigId, ct);
-        var app = Found(await Applications.SingleOrDefaultAsync(x => x.Id == id, ct));
-        Own(app.Gig.OwnerId == user);
-        Require(app.Gig.Status == GigStatus.Open, "This gig is no longer open.", 409);
+        var application = Found(await Applications.SingleOrDefaultAsync(x => x.Id == id, ct));
+        Own(application.Gig.OwnerId == user);
+        Require(application.Gig.Status == GigStatus.Open, "This gig is no longer open.", 409);
         Require(
-            app.Status
+            application.Status
                 is ApplicationStatus.Applied
                     or ApplicationStatus.Shortlisted
                     or ApplicationStatus.Waitlisted,
@@ -203,60 +179,48 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
             409
         );
         if (request.Status == ApplicationStatus.Booked)
+            await BookAsync(application, ct);
+        application.Status = request.Status;
+        db.Notify(
+            application.ApplicantId,
+            "status",
+            $"Your application to {application.Gig.Title} is now {request.Status.ToString().ToLowerInvariant()}.",
+            application.GigId
+        );
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return application.ToResponse();
+    }
+
+    // The caller holds the applicant lock, then the gig lock, in one transaction.
+    // All conflict cancellations, waitlist changes, and notifications commit together.
+    private async Task BookAsync(GigApplication application, CancellationToken ct)
+    {
+        Require(
+            application.Gig.Date is null || application.Gig.Date >= Today(time),
+            "You cannot book a gig in the past.",
+            409
+        );
+        if (application.Gig.Date is not null)
         {
             Require(
-                app.Gig.Date is null || app.Gig.Date >= Today(time),
-                "You cannot book a gig in the past.",
+                !await db.Applications.AnyAsync(
+                    x =>
+                        x.ApplicantId == application.ApplicantId
+                        && x.Id != application.Id
+                        && x.Status == ApplicationStatus.Booked
+                        && x.Gig.Date == application.Gig.Date,
+                    ct
+                ),
+                "This talent is already booked on that date.",
                 409
             );
-            if (app.Gig.Date is not null)
-            {
-                Require(
-                    !await db.Applications.AnyAsync(
-                        x =>
-                            x.ApplicantId == app.ApplicantId
-                            && x.Id != id
-                            && x.Status == ApplicationStatus.Booked
-                            && x.Gig.Date == app.Gig.Date,
-                        ct
-                    ),
-                    "This talent is already booked on that date.",
-                    409
-                );
-                var conflicts = await db
-                    .Applications.Include(x => x.Gig)
-                    .Where(x =>
-                        x.ApplicantId == app.ApplicantId
-                        && x.GigId != app.GigId
-                        && x.Gig.Date == app.Gig.Date
-                        && (
-                            x.Status == ApplicationStatus.Applied
-                            || x.Status == ApplicationStatus.Shortlisted
-                            || x.Status == ApplicationStatus.Waitlisted
-                        )
-                    )
-                    .ToArrayAsync(ct);
-                foreach (var other in conflicts)
-                {
-                    other.Status = ApplicationStatus.Cancelled;
-                    db.Notify(
-                        other.Gig.OwnerId,
-                        "status",
-                        $"{app.Applicant.Name}'s application to {other.Gig.Title} was cancelled because they were booked elsewhere on the same date.",
-                        other.GigId
-                    );
-                    db.Notify(
-                        app.ApplicantId,
-                        "status",
-                        $"Your application to {other.Gig.Title} was cancelled to avoid a date conflict.",
-                        other.GigId
-                    );
-                }
-            }
-            var siblings = await db
-                .Applications.Where(x =>
-                    x.GigId == app.GigId
-                    && x.Id != id
+            var conflicts = await db
+                .Applications.Include(x => x.Gig)
+                .Where(x =>
+                    x.ApplicantId == application.ApplicantId
+                    && x.GigId != application.GigId
+                    && x.Gig.Date == application.Gig.Date
                     && (
                         x.Status == ApplicationStatus.Applied
                         || x.Status == ApplicationStatus.Shortlisted
@@ -264,28 +228,45 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
                     )
                 )
                 .ToArrayAsync(ct);
-            foreach (var other in siblings)
+            foreach (var other in conflicts)
             {
-                other.Status = ApplicationStatus.Waitlisted;
+                other.Status = ApplicationStatus.Cancelled;
                 db.Notify(
-                    other.ApplicantId,
+                    other.Gig.OwnerId,
                     "status",
-                    $"You are on the waitlist for {app.Gig.Title}.",
-                    app.GigId
+                    $"{application.Applicant.Name}'s application to {other.Gig.Title} was cancelled because they were booked elsewhere on the same date.",
+                    other.GigId
+                );
+                db.Notify(
+                    application.ApplicantId,
+                    "status",
+                    $"Your application to {other.Gig.Title} was cancelled to avoid a date conflict.",
+                    other.GigId
                 );
             }
-            app.Gig.Status = GigStatus.Booked;
         }
-        app.Status = request.Status;
-        db.Notify(
-            app.ApplicantId,
-            "status",
-            $"Your application to {app.Gig.Title} is now {request.Status.ToString().ToLowerInvariant()}.",
-            app.GigId
-        );
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
-        return app.ToResponse();
+        var siblings = await db
+            .Applications.Where(x =>
+                x.GigId == application.GigId
+                && x.Id != application.Id
+                && (
+                    x.Status == ApplicationStatus.Applied
+                    || x.Status == ApplicationStatus.Shortlisted
+                    || x.Status == ApplicationStatus.Waitlisted
+                )
+            )
+            .ToArrayAsync(ct);
+        foreach (var other in siblings)
+        {
+            other.Status = ApplicationStatus.Waitlisted;
+            db.Notify(
+                other.ApplicantId,
+                "status",
+                $"You are on the waitlist for {application.Gig.Title}.",
+                application.GigId
+            );
+        }
+        application.Gig.Status = GigStatus.Booked;
     }
 
     public async Task<ApplicationResponse> CancelAsync(Guid user, Guid id, CancellationToken ct)
@@ -294,12 +275,12 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
             await db.Applications.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct)
         );
         Own(pointer.ApplicantId == user);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.LockAccountAsync(user, ct);
         await db.LockGigAsync(pointer.GigId, ct);
-        var app = Found(await Applications.SingleOrDefaultAsync(x => x.Id == id, ct));
+        var application = Found(await Applications.SingleOrDefaultAsync(x => x.Id == id, ct));
         Require(
-            app.Status
+            application.Status
                 is ApplicationStatus.Applied
                     or ApplicationStatus.Shortlisted
                     or ApplicationStatus.Waitlisted
@@ -307,30 +288,30 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
             "This application cannot be withdrawn.",
             409
         );
-        if (app.Status == ApplicationStatus.Booked)
+        if (application.Status == ApplicationStatus.Booked)
         {
             Require(
-                app.Gig.Date is null || app.Gig.Date >= Today(time),
+                application.Gig.Date is null || application.Gig.Date >= Today(time),
                 "Contact the hirer about a past booking.",
                 409
             );
-            app.Gig.Status = GigStatus.Open;
+            application.Gig.Status = GigStatus.Open;
         }
-        app.Status = ApplicationStatus.Cancelled;
+        application.Status = ApplicationStatus.Cancelled;
         db.Notify(
-            app.Gig.OwnerId,
+            application.Gig.OwnerId,
             "status",
-            $"{app.Applicant.Name} withdrew from {app.Gig.Title}.",
-            app.GigId
+            $"{application.Applicant.Name} withdrew from {application.Gig.Title}.",
+            application.GigId
         );
         await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
-        return app.ToResponse();
+        await transaction.CommitAsync(ct);
+        return application.ToResponse();
     }
 
     public async Task<GigResponse> CompleteAsync(Guid user, Guid id, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.LockGigAsync(id, ct);
         var gig = Found(
             await db
@@ -350,28 +331,28 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
             409
         );
         gig.Status = GigStatus.Completed;
-        foreach (var app in gig.Applications)
+        foreach (var application in gig.Applications)
         {
-            if (app.Status == ApplicationStatus.Booked)
+            if (application.Status == ApplicationStatus.Booked)
             {
-                app.Status = ApplicationStatus.Completed;
+                application.Status = ApplicationStatus.Completed;
                 db.Notify(
-                    app.ApplicantId,
+                    application.ApplicantId,
                     "completed",
                     $"{gig.Title} was marked complete. Thank you for your work!",
                     id
                 );
             }
             else if (
-                app.Status
+                application.Status
                 is ApplicationStatus.Applied
                     or ApplicationStatus.Shortlisted
                     or ApplicationStatus.Waitlisted
             )
-                app.Status = ApplicationStatus.NotSelected;
+                application.Status = ApplicationStatus.NotSelected;
         }
         await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+        await transaction.CommitAsync(ct);
         return gig.ToResponse();
     }
 
@@ -386,42 +367,43 @@ public sealed class BookingService(MarketplaceDb db, TimeProvider time) : IBooki
                 .Applications.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Id == request.ApplicationId, ct)
         );
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.LockGigAsync(pointer.GigId, ct);
-        var app = Found(
+        var application = Found(
             await Applications.SingleOrDefaultAsync(x => x.Id == request.ApplicationId, ct)
         );
-        Own(app.Gig.OwnerId == user);
+        Own(application.Gig.OwnerId == user);
         Require(
-            app.Status == ApplicationStatus.Completed && app.Gig.Status == GigStatus.Completed,
+            application.Status == ApplicationStatus.Completed
+                && application.Gig.Status == GigStatus.Completed,
             "Reviews are available only after the gig is completed.",
             409
         );
         Require(
-            !await db.Reviews.AnyAsync(x => x.ApplicationId == app.Id, ct),
+            !await db.Reviews.AnyAsync(x => x.ApplicationId == application.Id, ct),
             "You already reviewed this gig.",
             409
         );
-        var profile = Found(app.Applicant.Profile);
+        var profile = Found(application.Applicant.Profile);
         var review = new Review
         {
-            ApplicationId = app.Id,
-            Application = app,
+            ApplicationId = application.Id,
+            Application = application,
             ProfileId = profile.Id,
             HirerId = user,
-            Hirer = app.Gig.Owner,
+            Hirer = application.Gig.Owner,
             Rating = request.Rating,
             Text = request.Text.Trim(),
         };
         db.Reviews.Add(review);
         db.Notify(
-            app.ApplicantId,
+            application.ApplicantId,
             "review",
-            $"{app.Gig.Owner.Name} reviewed your work on {app.Gig.Title}.",
-            app.GigId
+            $"{application.Gig.Owner.Name} reviewed your work on {application.Gig.Title}.",
+            application.GigId
         );
         await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+        await transaction.CommitAsync(ct);
         return review.ToResponse();
     }
 

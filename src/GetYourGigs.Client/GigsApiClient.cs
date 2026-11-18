@@ -114,33 +114,58 @@ public sealed class GigsApiClient(HttpClient http, ITokenStore tokens)
         var response = await http.SendAsync(request, ct);
         if (response.IsSuccessStatusCode)
             return response;
-        var status = response.StatusCode;
-        string message;
+        using (response)
+        {
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                await tokens.SetAsync(null);
+            var message = await ReadErrorAsync(response, ct);
+            throw new ApiRequestException(response.StatusCode, message);
+        }
+    }
+
+    private static async Task<string> ReadErrorAsync(
+        HttpResponseMessage response,
+        CancellationToken ct
+    )
+    {
         try
         {
             using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-            message =
-                json.RootElement.TryGetProperty("detail", out var detail)
-                    ? detail.GetString() ?? "Request failed."
-                : json.RootElement.TryGetProperty("errors", out var errors)
-                    ? string.Join(
-                        " ",
-                        errors
-                            .EnumerateObject()
-                            .SelectMany(x => x.Value.EnumerateArray().Select(v => v.GetString()))
-                    )
-                : "Request could not be completed.";
+            var problem = json.RootElement;
+            if (problem.ValueKind == JsonValueKind.Object)
+            {
+                if (
+                    problem.TryGetProperty("detail", out var detail)
+                    && detail.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(detail.GetString())
+                )
+                    return detail.GetString()!;
+
+                if (
+                    problem.TryGetProperty("errors", out var errors)
+                    && errors.ValueKind == JsonValueKind.Object
+                )
+                {
+                    var messages = errors
+                        .EnumerateObject()
+                        .Where(property => property.Value.ValueKind == JsonValueKind.Array)
+                        .SelectMany(property => property.Value.EnumerateArray())
+                        .Where(value => value.ValueKind == JsonValueKind.String)
+                        .Select(value => value.GetString())
+                        .Where(value => !string.IsNullOrWhiteSpace(value));
+                    var message = string.Join(" ", messages);
+                    if (message.Length > 0)
+                        return message;
+                }
+            }
         }
         catch (JsonException)
         {
-            message =
-                status == HttpStatusCode.TooManyRequests
-                    ? "Please wait a moment and try again."
-                    : "The server could not complete this request.";
+            // Proxies can return HTML or an empty body instead of Problem Details.
         }
-        response.Dispose();
-        if (status == HttpStatusCode.Unauthorized)
-            await tokens.SetAsync(null);
-        throw new ApiRequestException(status, message);
+
+        return response.StatusCode == HttpStatusCode.TooManyRequests
+            ? "Please wait a moment and try again."
+            : "The server could not complete this request.";
     }
 }

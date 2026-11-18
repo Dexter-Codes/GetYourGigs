@@ -10,8 +10,10 @@ The deployable unit is one .NET 10 API that also serves React. PostgreSQL and up
 4. Form an Npgsql connection string (not a `postgresql://` URL):
 
    ```text
-   Host=<exact-pooler-host>;Port=5432;Database=postgres;Username=<exact-pooler-username>;Password=<database-password>;SSL Mode=VerifyFull;Maximum Pool Size=10
+   Host=<exact-pooler-host>;Port=5432;Database=postgres;Username=<exact-pooler-username>;Password=<database-password>;SSL Mode=VerifyFull;Root Certificate=/etc/secrets/supabase-ca.crt;GSS Encryption Mode=Disable;Maximum Pool Size=10
    ```
+
+   Download the database CA certificate from Supabase Database Settings. In the Render service’s Environment settings, add a Secret File named `supabase-ca.crt` containing the complete PEM certificate (including BEGIN/END CERTIFICATE lines). Render mounts it at `/etc/secrets/supabase-ca.crt`. Add this before the first successful startup; `VerifyFull` needs this CA to validate the Supabase pooler certificate. `GSS Encryption Mode=Disable` avoids optional Kerberos probing; TLS remains enabled.
 
    Passwords containing connection-string delimiters need Npgsql quoting. Enter the final value directly into Render, never into Git, screenshots, or chat.
 5. In **Storage**, create a **public** bucket called `gyg-photos`. Allow `image/jpeg`, `image/png`, and `image/webp`, with a size limit of at least 5 MiB (5,242,880 bytes). Public here means profile/gig images can be viewed by URL, matching the app's existing public listings; do not upload private documents.

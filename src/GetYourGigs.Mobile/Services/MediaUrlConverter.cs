@@ -10,7 +10,7 @@ public sealed class MediaUrlConverter : IValueConverter
             return null;
         return url.StartsWith("/uploads/", StringComparison.Ordinal)
             ? new Uri(
-                new Uri(Preferences.Default.Get("api-address", "http://localhost:5080/")),
+                new Uri(Preferences.Default.Get("api-address", "https://getyourgigs-testing.onrender.com/")),
                 url
             ).ToString()
             : url;

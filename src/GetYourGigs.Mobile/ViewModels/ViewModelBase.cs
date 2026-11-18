@@ -10,7 +10,7 @@ public abstract partial class ViewModelBase : ObservableObject
     [ObservableProperty]
     private string error = "";
 
-    public async Task RunAsync(Func<Task> action)
+    public async Task RunAsync(Func<Task> action, CancellationToken cancellationToken = default)
     {
         if (IsBusy)
             return;
@@ -20,17 +20,22 @@ public abstract partial class ViewModelBase : ObservableObject
         {
             await action();
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Leaving a page cancels its work without displaying a connection error.
+        }
         catch (Exception e)
             when (e
                     is ApiRequestException
                         or HttpRequestException
-                        or TaskCanceledException
+                        or OperationCanceledException
+                        or IOException
                         or ValidationException
                         or ArgumentException
             )
         {
             Error =
-                e is TaskCanceledException
+                e is OperationCanceledException
                     ? "The server is taking longer than expected to wake up. Please try again shortly."
                 : e is HttpRequestException
                     ? "Cannot reach the marketplace. Check your connection and API address in Profile."

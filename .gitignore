@@ -13,3 +13,7 @@
 **/.data/
 **/wwwroot/
 .csharpier_cache
+
+# Local browser verification artifacts
+.playwright-cli/
+output/playwright/

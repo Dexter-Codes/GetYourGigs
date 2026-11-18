@@ -3,7 +3,8 @@ using System.Collections.ObjectModel;
 namespace GetYourGigs.Mobile.ViewModels;
 
 /// <summary>Shared photo draft and upload behavior for talent and gig editors.</summary>
-public abstract partial class MediaEditorViewModel(GigsApiClient api) : ViewModelBase
+public abstract partial class MediaEditorViewModel(GigsApiClient api, IPhotoPicker photoPicker)
+    : ViewModelBase
 {
     protected GigsApiClient Api { get; } = api;
 
@@ -13,13 +14,19 @@ public abstract partial class MediaEditorViewModel(GigsApiClient api) : ViewMode
     [ObservableProperty]
     private string photoUrl = "";
 
-    public Task AddPhotoAsync(Stream stream, string filename) =>
+    [RelayCommand]
+    private Task PickPhotoAsync() =>
         RunAsync(async () =>
         {
             if (Photos.Count >= 5)
                 throw new ArgumentException("Use up to five photos.");
-            var uploaded = await Api.UploadAsync(stream, filename);
-            Photos.Add(uploaded.Url);
+            var selected = await photoPicker.PickAsync();
+            foreach (var photo in selected.Take(5 - Photos.Count))
+            {
+                await using var stream = await photo.OpenReadAsync();
+                var uploaded = await Api.UploadAsync(stream, photo.FileName);
+                Photos.Add(uploaded.Url);
+            }
         });
 
     [RelayCommand]

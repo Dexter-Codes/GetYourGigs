@@ -37,7 +37,7 @@
         <Button
             Text="Add a photo from your device"
             Style="{StaticResource OutlineButton}"
-            Clicked="OnPickPhoto"
+            Command="{Binding PickPhotoCommand}"
         />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <Border Style="{StaticResource InputBorder}">

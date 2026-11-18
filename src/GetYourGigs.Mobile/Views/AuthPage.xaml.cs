@@ -11,10 +11,4 @@ public partial class AuthPage : ContentPage
         InitializeComponent();
         BindingContext = ViewModel = vm;
     }
-
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-        await ViewModel.InitializeAsync();
-    }
 }

@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GetYourGigs.Api.Data;
+using GetYourGigs.Api.Services;
 using GetYourGigs.Contracts;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -371,6 +372,18 @@ public sealed class MarketplaceTests(TestEnvironment environment) : IClassFixtur
             );
             Assert.Equal(1, profile.ReviewCount);
             Assert.Equal(5, profile.Rating);
+            // Detail, discovery, and owner reads share the projection contract.
+            var mine = await Read<ProfileResponse>(await w.GetAsync("/api/me/profile"));
+            Assert.Equal(profile.Rating, mine.Rating);
+            Assert.Equal(profile.ReviewCount, mine.ReviewCount);
+            await using var scope = environment.Factory.Services.CreateAsyncScope();
+            var catalog = scope.ServiceProvider.GetRequiredService<ICatalogService>();
+            var db = scope.ServiceProvider.GetRequiredService<MarketplaceDb>();
+            var detail = await catalog.GigAsync(g.Id, CancellationToken.None);
+            var owned = await catalog.MineAsync(g.OwnerId, CancellationToken.None);
+            Assert.Equal(1, detail.ApplicationCount);
+            Assert.Equal(1, Assert.Single(owned, item => item.Id == g.Id).ApplicationCount);
+            Assert.Empty(db.ChangeTracker.Entries());
         }
     }
 
@@ -673,6 +686,60 @@ public sealed class MarketplaceTests(TestEnvironment environment) : IClassFixtur
             Assert.NotNull(profiles);
             Assert.False(profiles.IsPreview);
         }
+    }
+
+    [Fact]
+    public async Task Catalog_pages_with_equal_names_do_not_repeat_or_omit_profiles()
+    {
+        var city = "Test-" + Guid.NewGuid().ToString("N");
+        var profileIds = new List<Guid>();
+        for (var index = 0; index < 13; index++)
+        {
+            var (client, _, profileId) = await PersonAsync();
+            client.Dispose();
+            profileIds.Add(profileId);
+        }
+        await using var scope = environment.Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<MarketplaceDb>();
+        await db
+            .Profiles.Where(profile => profileIds.Contains(profile.Id))
+            .ExecuteUpdateAsync(update => update.SetProperty(profile => profile.City, city));
+        var catalog = scope.ServiceProvider.GetRequiredService<ICatalogService>();
+        var first = await catalog.ProfilesAsync(
+            true,
+            null,
+            null,
+            city,
+            null,
+            1,
+            CancellationToken.None
+        );
+        var second = await catalog.ProfilesAsync(
+            true,
+            null,
+            null,
+            city,
+            null,
+            2,
+            CancellationToken.None
+        );
+
+        Assert.Equal(13, first.Total);
+        Assert.Equal(12, first.Items.Length);
+        Assert.Single(second.Items);
+        Assert.Equal(
+            profileIds.Order(),
+            first.Items.Concat(second.Items).Select(profile => profile.Id).Order()
+        );
+        Assert.All(
+            first.Items,
+            profile =>
+            {
+                Assert.Null(profile.Rating);
+                Assert.Equal(0, profile.ReviewCount);
+            }
+        );
+        Assert.Empty(db.ChangeTracker.Entries());
     }
 
     private sealed class TestTokenStore : GetYourGigs.Client.ITokenStore

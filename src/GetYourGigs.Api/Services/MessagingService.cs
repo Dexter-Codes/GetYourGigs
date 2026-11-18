@@ -5,30 +5,19 @@ using static GetYourGigs.Api.Services.ServiceRules;
 
 namespace GetYourGigs.Api.Services;
 
-public interface IMessagingService
-{
-    Task<ThreadResponse[]> ThreadsAsync(Guid user, CancellationToken ct);
-    Task<ThreadResponse> StartAsync(Guid user, StartThreadRequest request, CancellationToken ct);
-    Task<MessageResponse[]> MessagesAsync(Guid user, Guid thread, CancellationToken ct);
-    Task<MessageResponse> SendAsync(
-        Guid user,
-        Guid thread,
-        SendMessageRequest request,
-        CancellationToken ct
-    );
-    Task<UpdateResponse[]> UpdatesAsync(Guid user, CancellationToken ct);
-    Task ReadUpdatesAsync(Guid user, CancellationToken ct);
-}
-
 public sealed class MessagingService(MarketplaceDb db) : IMessagingService
 {
     private IQueryable<Conversation> Threads =>
         db.Conversations.Include(x => x.First).Include(x => x.Second).Include(x => x.Gig);
 
-    public async Task<ThreadResponse[]> ThreadsAsync(Guid user, CancellationToken ct) =>
-        await Threads
+    public Task<ThreadResponse[]> ThreadsAsync(Guid user, CancellationToken ct) =>
+        ThreadResponses(user).ToArrayAsync(ct);
+
+    private IQueryable<ThreadResponse> ThreadResponses(Guid user, Guid? threadId = null) =>
+        Threads
             .AsNoTracking()
             .Where(x => x.FirstId == user || x.SecondId == user)
+            .Where(x => threadId == null || x.Id == threadId)
             .OrderByDescending(x => x.UpdatedAt)
             .Select(x => new ThreadResponse(
                 x.Id,
@@ -40,8 +29,7 @@ public sealed class MessagingService(MarketplaceDb db) : IMessagingService
                     ?? "",
                 x.UpdatedAt,
                 x.Messages.Count(m => m.SenderId != user && !m.Read)
-            ))
-            .ToArrayAsync(ct);
+            ));
 
     public async Task<ThreadResponse> StartAsync(
         Guid user,
@@ -99,7 +87,7 @@ public sealed class MessagingService(MarketplaceDb db) : IMessagingService
         );
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        return (await ThreadsAsync(user, ct)).Single(x => x.Id == thread.Id);
+        return await ThreadResponses(user, thread.Id).SingleAsync(ct);
     }
 
     public async Task<MessageResponse[]> MessagesAsync(Guid user, Guid thread, CancellationToken ct)
@@ -115,6 +103,7 @@ public sealed class MessagingService(MarketplaceDb db) : IMessagingService
             .Messages.Include(x => x.Sender)
             .Where(x => x.ConversationId == conversation.Id)
             .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id)
             .Take(200)
             .ToArrayAsync(ct);
         foreach (var message in messages.Where(x => x.SenderId != user))
@@ -163,6 +152,7 @@ public sealed class MessagingService(MarketplaceDb db) : IMessagingService
             .Activities.AsNoTracking()
             .Where(x => x.AccountId == user)
             .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id)
             .Take(100)
             .Select(x => new UpdateResponse(x.Id, x.Kind, x.Text, x.GigId, x.CreatedAt, x.Read))
             .ToArrayAsync(ct);

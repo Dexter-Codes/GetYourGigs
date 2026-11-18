@@ -5,6 +5,58 @@
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
     <ItemGroup>
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/ViewModels/ThreadViewModel.cs"
+            Link="Mobile/ThreadViewModel.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/ViewModels/ChatMessage.cs"
+            Link="Mobile/ChatMessage.cs"
+        />
+        <!-- Exercise platform-independent view-model commands without a device runtime. -->
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/ViewModels/ViewModelBase.cs"
+            Link="Mobile/ViewModelBase.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/ViewModels/ApplicantsViewModel.cs"
+            Link="Mobile/ApplicantsViewModel.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/ViewModels/DetailViewModel.cs"
+            Link="Mobile/DetailViewModel.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/ViewModels/MediaEditorViewModel.cs"
+            Link="Mobile/MediaEditorViewModel.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/Services/INavigator.cs"
+            Link="Mobile/INavigator.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/Services/IUserDialogs.cs"
+            Link="Mobile/IUserDialogs.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/Services/IPhotoPicker.cs"
+            Link="Mobile/IPhotoPicker.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/Services/AppSession.cs"
+            Link="Mobile/AppSession.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/Models/ListingItem.cs"
+            Link="Mobile/ListingItem.cs"
+        />
+        <Compile
+            Include="../../src/GetYourGigs.Mobile/GlobalUsings.cs"
+            Link="Mobile/GlobalUsings.cs"
+        />
+    </ItemGroup>
+    <ItemGroup>
         <Using Include="Xunit" />
         <ProjectReference Include="../../src/GetYourGigs.Api/GetYourGigs.Api.csproj" />
         <ProjectReference Include="../../src/GetYourGigs.Client/GetYourGigs.Client.csproj" />

@@ -44,3 +44,68 @@ Both editors support up to five photos. Uploads require authentication, cap requ
 Search uses PostgreSQL ILIKE substring matching with pagination. Category/city/status and activity/application lookup indexes are declared in the model. Trigram/full-text search is unnecessary for the current MVP; add it only with real query-plan/workload evidence. Sample photos come from Unsplash, fonts are locally bundled on mobile with their open font licenses, and no runtime CDN is needed for the application logic.
 
 The optional map, geocoding, voice notes, payments, push notifications, advanced portfolio/business fields, and legacy Supabase import are outside this first implementation. The existing Supabase project was left untouched.
+
+## Code organization and mobile MVVM
+
+API route registration is grouped into Auth, Account, Catalog, Booking, Messaging,
+and Upload endpoint classes. `ApiEndpoints` composes those groups. Handlers bind
+contracts and call interface-backed services; booking transactions and lock order
+remain inside the services. Expected uniqueness/foreign-key conflicts return 409;
+unexpected database failures are logged and return a sanitized 500 Problem Details
+response with a trace identifier.
+
+Each mobile screen has its own view-model file. Page code-behind contains only
+XAML initialization and constructor-injected binding context. `App` and platform
+entry points retain the framework startup code. `PageCommands` connects page
+visibility to commands through attached properties. It contains no marketplace
+policy. Compiled bindings and the existing `SafeAreaEdges="All"` page style remain
+the defaults.
+
+View models depend on `INavigator`, `IUserDialogs`, `IPhotoPicker`,
+`IServerConfiguration`, and `IBrowserSignIn` where needed. Platform implementations
+own navigation, alerts, media selection, preferences, and browser authentication.
+The shared `MediaEditorViewModel` owns photo drafts/upload commands for both editors.
+Server switching has one implementation and clears the previous session before
+changing the transport address. `AppSession` owns the current account, while
+`GigsApiClient` remains a transport client rather than a business-policy layer.
+Pages/view models are transient; shared session and platform services are singletons.
+
+Chat polling is owned by the view model, cancels its in-flight read when the page
+closes, and serializes refreshes with sending so a refresh cannot silently discard
+a send action. Chat colors/alignment are XAML triggers rather than view-model UI
+types. Confirmation commands can be tested without displaying native dialogs.
+
+The .NET test project links the platform-independent view-model source and uses
+HTTP handlers and platform-service substitutes. These tests cover confirmation,
+current application status, upload limits and stream cleanup, and chat cancellation.
+They do not replace native navigation, keyboard, photo-picker, or sign-in tests.
+Native builds validate C# and compiled XAML; runtime dependency resolution,
+physical-device behavior, and production deployment still require separate validation.
+
+## Backend and React maintainability
+
+`Program.cs` describes the HTTP pipeline; `Hosting/MarketplaceServices.cs` owns
+core service, authentication, validation, and rate-limiter registration. Service
+interfaces live beside their implementations in named files. `BookingService`
+keeps its database locks and commit in the public operation; the private booking
+helper groups conflict cancellations, waitlisting, and activity creation without
+opening an independent transaction.
+
+Catalog reads project directly into response records. The shared mapping
+expressions calculate ratings and application counts in SQL for queries, while
+mutation responses map the tracked graph already loaded by the operation. This
+avoids loading complete review/application collections for catalog reads. No
+schema migration or API contract change is needed.
+
+The React source separates `pages/`, `flows/`, and reusable `components/`.
+`app/useMarketplace.ts` owns application coordination; `app/AppDialog.tsx` renders
+its typed dialog state. `api.ts` handles HTTP and session tokens, while
+`hooks/useResource.ts` owns cancellable reads and `hooks/useInbox.ts` owns
+conversation selection, polling, and per-conversation drafts. Effect cleanup
+aborts obsolete reads and prevents their results from replacing current data.
+An unauthorized response only expires the session that sent that request.
+
+Forms guard against duplicate pending submissions. Chat send completion clears
+only the submitted draft, preserving edits or drafts in another conversation.
+TypeScript checks unused locals and parameters during the production build;
+Vitest discovers both `.test.ts` and `.test.tsx` files.

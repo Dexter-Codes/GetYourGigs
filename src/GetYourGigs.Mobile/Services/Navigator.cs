@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GetYourGigs.Mobile.Services;
 
-public sealed class Navigator(IServiceProvider services)
+public sealed class Navigator(IServiceProvider services) : INavigator
 {
     private static INavigation Navigation => Application.Current!.Windows[0].Page!.Navigation;
 

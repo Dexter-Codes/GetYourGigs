@@ -56,3 +56,61 @@ The earlier Docker limitation above is superseded by these local container check
 - Shell syntax and formatting checks passed. No commits, pushes, cloud provisioning, or external provider calls were performed.
 
 Real Render ingress, Supabase database TLS/storage permissions, Google account sign-in, email recipient delivery, and persistence across an actual Render redeployment still require the post-deployment checklist. Provider HTTP calls in the automated tests are simulated.
+
+## Maintainability and MVVM refactor — 17 November 2026
+
+- `./scripts/test.sh`: 45 .NET tests and 3 React tests passed; the React production
+  build passed. PostgreSQL tests use isolated `gyg_tests_*` databases.
+- iOS simulator build (`net10.0-ios`, `iossimulator-arm64`): passed with zero warnings
+  and errors, including strict XAML compilation.
+- Android build (`net10.0-android`): passed with zero warnings and errors.
+- Added regression coverage for booking confirmation, refreshed application status,
+  photo capacity/stream disposal, cancellation when closing/reopening chat, malformed
+  HTTP error payloads, and database conflict classification.
+- Page event handlers were replaced by bound commands and reusable lifecycle wiring.
+  Page constructors still initialize XAML and assign the injected binding context;
+  framework/platform startup code remains in the required entry points.
+- These checks establish compilation and automated behavior only. No physical-device
+  navigation, media permission flow, Google login, live email delivery, load test,
+  backup restoration, or production deployment was performed as part of this refactor.
+
+## Backend and React review — 18 November 2026
+
+- `./scripts/test.sh`: **46 .NET tests passed**, **14 React tests passed**, and the
+  TypeScript/Vite production build passed. PostgreSQL integration tests used only
+  their isolated `gyg_tests_*` databases.
+- Catalog regressions cover equal-name pagination without omissions/duplicates,
+  unrated profiles, persisted review ratings, application counts, and reads that
+  do not track entities. Existing booking/concurrency and authorization tests pass.
+- React regressions cover stale unauthorized responses, malformed error payloads,
+  aborting obsolete reads, duplicate form submission, temporary session-restore
+  failures, and preserving drafts during sends and conversation changes.
+- `git diff --check` passed. C# and React changes were formatted with the existing
+  repository tools. TypeScript now checks unused locals and parameters.
+- `npm audit` reported five high-severity entries in the development-tool chain
+  (`picomatch`, `fdir`, `tinyglobby`, `vite`, and `vitest`), rooted in
+  [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf).
+  Its automatic fix recommendation downgraded Vite/Vitest; no dependency downgrade
+  or forced audit fix was applied. This remains an outstanding tooling finding.
+- No browser visual comparison, load benchmark, or production deployment was
+  performed. Query projections were verified through PostgreSQL tests, not a
+  production performance benchmark.
+
+## React UI accessibility and usability — 18 November 2026
+
+- Replaced compressed mobile typography and controls with readable text, 44px
+  minimum button heights, single-column phone cards, and wrapping form layouts.
+- Added an explicit Hire talent / Find work selector, consistent category icons,
+  clearer search and sign-in copy, filter reset, and descriptive bookmark labels.
+- Added skip navigation, active navigation state, selected category state, linked
+  field descriptions, named dialogs, and inert page content while a dialog is open.
+- Verification: 46 .NET tests and 18 React tests passed; the production build and
+  `git diff --check` passed. Four new component tests cover labels/descriptions,
+  marketplace selection, category selection, and dialog focus/escape behavior.
+- Playwright against the local API verified guest discovery, switching to gigs,
+  and sign-in dialog keyboard behavior. Desktop and 390px/320px phone layouts were
+  inspected; phone document widths matched the viewport widths without horizontal
+  overflow. Local screenshots are under ignored `output/playwright/`.
+- Google sign-in reports that localhost is not an allowed origin for the configured
+  client. No provider settings were changed or sign-in completion claimed. These
+  checks are not a full assistive-technology or WCAG compliance audit.

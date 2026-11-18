@@ -2,6 +2,7 @@ using GetYourGigs.Api.Services;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace GetYourGigs.Api.Middleware;
 
@@ -16,7 +17,15 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         var status = exception switch
         {
             ApiException e => e.Status,
-            DbUpdateException => 409,
+            DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
+            DbUpdateException
+            {
+                InnerException: PostgresException
+                {
+                    SqlState: PostgresErrorCodes.UniqueViolation
+                        or PostgresErrorCodes.ForeignKeyViolation
+                }
+            } => StatusCodes.Status409Conflict,
             _ => 500,
         };
         var detail =
@@ -34,7 +43,11 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
                 Status = status,
                 Title = status >= 500 ? "Server error" : "Request could not be completed",
                 Detail = detail,
+                Instance = context.Request.Path,
+                Extensions = { ["traceId"] = context.TraceIdentifier },
             },
+            options: (System.Text.Json.JsonSerializerOptions?)null,
+            contentType: "application/problem+json",
             cancellationToken: ct
         );
         return true;

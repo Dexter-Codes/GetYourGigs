@@ -5,51 +5,6 @@ using static GetYourGigs.Api.Services.ServiceRules;
 
 namespace GetYourGigs.Api.Services;
 
-public interface ICatalogService
-{
-    Task<PageResponse<ProfileResponse>> ProfilesAsync(
-        bool signedIn,
-        string? q,
-        string? category,
-        string? city,
-        bool? available,
-        int page,
-        CancellationToken ct
-    );
-    Task<ProfileResponse> ProfileAsync(Guid id, CancellationToken ct);
-    Task<ProfileResponse?> MyProfileAsync(Guid user, CancellationToken ct);
-    Task<ProfileResponse> SaveProfileAsync(
-        Guid user,
-        SaveProfileRequest request,
-        CancellationToken ct
-    );
-    Task<PageResponse<GigResponse>> GigsAsync(
-        bool signedIn,
-        string? q,
-        string? category,
-        string? city,
-        int page,
-        CancellationToken ct
-    );
-    Task<GigResponse> GigAsync(Guid id, CancellationToken ct);
-    Task<GigResponse[]> MineAsync(Guid user, CancellationToken ct);
-    Task<GigResponse> SaveGigAsync(
-        Guid user,
-        Guid? id,
-        SaveGigRequest request,
-        CancellationToken ct
-    );
-    Task<GigResponse> CloseAsync(Guid user, Guid id, CancellationToken ct);
-    Task<BookmarkResponse> BookmarkByIdAsync(Guid user, Guid id, CancellationToken ct);
-    Task<BookmarkResponse[]> BookmarksAsync(Guid user, CancellationToken ct);
-    Task<BookmarkResponse> BookmarkAsync(
-        Guid user,
-        SaveBookmarkRequest request,
-        CancellationToken ct
-    );
-    Task RemoveBookmarkAsync(Guid user, Guid id, CancellationToken ct);
-}
-
 public sealed class CatalogService(MarketplaceDb db, TimeProvider time) : ICatalogService
 {
     private IQueryable<TalentProfile> Profiles =>
@@ -66,7 +21,7 @@ public sealed class CatalogService(MarketplaceDb db, TimeProvider time) : ICatal
         CancellationToken ct
     )
     {
-        var query = Profiles.AsNoTracking();
+        var query = db.Profiles.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(q))
         {
             var term = "%" + q.Trim() + "%";
@@ -90,17 +45,26 @@ public sealed class CatalogService(MarketplaceDb db, TimeProvider time) : ICatal
             .ThenBy(x => x.Id)
             .Skip((page - 1) * size)
             .Take(size)
+            .Select(Mapping.ProfileProjection)
             .ToArrayAsync(ct);
-        return new(items.Select(x => x.ToResponse()).ToArray(), total, !signedIn, page, size);
+        return new(items, total, !signedIn, page, size);
     }
 
     public async Task<ProfileResponse> ProfileAsync(Guid id, CancellationToken ct) =>
-        Found(await Profiles.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct)).ToResponse();
+        Found(
+            await db
+                .Profiles.AsNoTracking()
+                .Where(profile => profile.Id == id)
+                .Select(Mapping.ProfileProjection)
+                .SingleOrDefaultAsync(ct)
+        );
 
     public async Task<ProfileResponse?> MyProfileAsync(Guid user, CancellationToken ct) =>
-        (
-            await Profiles.AsNoTracking().SingleOrDefaultAsync(x => x.OwnerId == user, ct)
-        )?.ToResponse();
+        await db
+            .Profiles.AsNoTracking()
+            .Where(profile => profile.OwnerId == user)
+            .Select(Mapping.ProfileProjection)
+            .SingleOrDefaultAsync(ct);
 
     public async Task<ProfileResponse> SaveProfileAsync(
         Guid user,
@@ -157,7 +121,8 @@ public sealed class CatalogService(MarketplaceDb db, TimeProvider time) : ICatal
         CancellationToken ct
     )
     {
-        var query = Gigs.AsNoTracking()
+        var query = db
+            .Gigs.AsNoTracking()
             .Where(x => x.Status == GigStatus.Open && (x.Date == null || x.Date >= Today(time)));
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -175,25 +140,31 @@ public sealed class CatalogService(MarketplaceDb db, TimeProvider time) : ICatal
         page = signedIn ? Math.Clamp(page, 1, 10000) : 1;
         var items = await query
             .OrderByDescending(x => x.CreatedAt)
-            .ThenBy(x => x.Id)
+            .ThenByDescending(x => x.Id)
             .Skip((page - 1) * size)
             .Take(size)
+            .Select(Mapping.GigProjection)
             .ToArrayAsync(ct);
-        return new(items.Select(x => x.ToResponse()).ToArray(), total, !signedIn, page, size);
+        return new(items, total, !signedIn, page, size);
     }
 
     public async Task<GigResponse> GigAsync(Guid id, CancellationToken ct) =>
-        Found(await Gigs.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct)).ToResponse();
+        Found(
+            await db
+                .Gigs.AsNoTracking()
+                .Where(gig => gig.Id == id)
+                .Select(Mapping.GigProjection)
+                .SingleOrDefaultAsync(ct)
+        );
 
     public async Task<GigResponse[]> MineAsync(Guid user, CancellationToken ct) =>
-        (
-            await Gigs.AsNoTracking()
-                .Where(x => x.OwnerId == user)
-                .OrderByDescending(x => x.CreatedAt)
-                .ToArrayAsync(ct)
-        )
-            .Select(x => x.ToResponse())
-            .ToArray();
+        await db
+            .Gigs.AsNoTracking()
+            .Where(gig => gig.OwnerId == user)
+            .OrderByDescending(gig => gig.CreatedAt)
+            .ThenByDescending(gig => gig.Id)
+            .Select(Mapping.GigProjection)
+            .ToArrayAsync(ct);
 
     public async Task<GigResponse> SaveGigAsync(
         Guid user,

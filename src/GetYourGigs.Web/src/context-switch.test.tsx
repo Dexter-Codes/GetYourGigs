@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useResource } from "./api";
+import { useResource } from "./hooks/useResource";
 import { Saved } from "./pages";
 import type { Profile, Gig, Bookmark } from "./types";
 const response = (data: unknown) =>

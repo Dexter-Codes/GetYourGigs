@@ -29,12 +29,24 @@ public static class MauiProgram
         builder.Services.AddSingleton<ITokenStore, SecureTokenStore>();
         builder.Services.AddSingleton(sp =>
         {
-#if ANDROID
-            const string local = "http://10.0.2.2:5080/";
-#else
-            const string local = "http://localhost:5080/";
-#endif
-            var address = Preferences.Default.Get("api-address", local);
+            const string hostedAddress = "https://getyourgigs-testing.onrender.com/";
+            // Move existing installs off the temporary tunnel before restoring a session.
+            // Run once so later intentional server changes remain available.
+            if (!Preferences.Default.Get("render-server-migrated-v1", false))
+            {
+                var previousAddress = Preferences.Default.Get("api-address", "");
+                if (
+                    !string.Equals(
+                        previousAddress.TrimEnd('/'),
+                        hostedAddress.TrimEnd('/'),
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                    SecureStorage.Default.Remove("gyg-access-token");
+                Preferences.Default.Set("api-address", hostedAddress);
+                Preferences.Default.Set("render-server-migrated-v1", true);
+            }
+            var address = Preferences.Default.Get("api-address", hostedAddress);
             Preferences.Default.Set("api-address", address);
             return new GigsApiClient(
                 new HttpClient
@@ -47,7 +59,11 @@ public static class MauiProgram
             );
         });
         builder.Services.AddSingleton<AppSession>();
-        builder.Services.AddSingleton<Navigator>();
+        builder.Services.AddSingleton<INavigator, Navigator>();
+        builder.Services.AddSingleton<IUserDialogs, UserDialogs>();
+        builder.Services.AddSingleton<IPhotoPicker, PhotoPicker>();
+        builder.Services.AddSingleton<IServerConfiguration, ServerConfiguration>();
+        builder.Services.AddSingleton<IBrowserSignIn, BrowserSignIn>();
         builder.Services.AddTransient<MainViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<AuthViewModel>();

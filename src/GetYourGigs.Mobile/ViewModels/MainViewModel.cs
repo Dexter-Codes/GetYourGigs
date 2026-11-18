@@ -6,10 +6,10 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly GigsApiClient api;
     private readonly AppSession session;
-    private readonly Navigator nav;
+    private readonly INavigator nav;
     private CancellationTokenSource? searchCancellation;
 
-    public MainViewModel(GigsApiClient api, AppSession session, Navigator nav)
+    public MainViewModel(GigsApiClient api, AppSession session, INavigator nav)
     {
         this.api = api;
         this.session = session;
@@ -33,14 +33,24 @@ public partial class MainViewModel : ViewModelBase
                     )
             )
             .ToArray();
-        session.Changed += (_, _) =>
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                OnPropertyChanged(nameof(SignedIn));
-                OnPropertyChanged(nameof(IsHiring));
-                OnPropertyChanged(nameof(ModeLabel));
-                OnPropertyChanged(nameof(AccountLabel));
-            });
+    }
+
+    private bool initialized;
+
+    [RelayCommand]
+    private async Task AppearAsync()
+    {
+        if (!initialized)
+        {
+            await InitializeAsync();
+            initialized = true;
+        }
+        else
+            await LoadAsync();
+        OnPropertyChanged(nameof(SignedIn));
+        OnPropertyChanged(nameof(IsHiring));
+        OnPropertyChanged(nameof(ModeLabel));
+        OnPropertyChanged(nameof(AccountLabel));
     }
 
     [ObservableProperty]
@@ -92,6 +102,7 @@ public partial class MainViewModel : ViewModelBase
     private void Debounce()
     {
         searchCancellation?.Cancel();
+        searchCancellation?.Dispose();
         var cancellation = searchCancellation = new CancellationTokenSource();
         _ = DebounceAsync(cancellation.Token);
     }

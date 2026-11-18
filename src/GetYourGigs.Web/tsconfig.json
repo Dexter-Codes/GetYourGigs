@@ -13,7 +13,9 @@
     "noEmit": true,
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "include": ["src"]
 }

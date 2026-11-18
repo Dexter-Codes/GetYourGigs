@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using GetYourGigs.Api.Data;
 using GetYourGigs.Contracts;
 
@@ -8,40 +9,50 @@ internal static class Mapping
     public static AccountResponse ToResponse(this Account x) =>
         new(x.Id, x.Name, x.Email, x.PreferredMode, x.Profile is not null);
 
-    public static ProfileResponse ToResponse(this TalentProfile x) =>
-        new(
-            x.Id,
-            x.OwnerId,
-            x.Owner.Name,
-            x.Headline,
-            x.Category,
-            x.City,
-            x.Rate,
-            x.RateUnit,
-            x.Bio,
-            x.Skills,
-            x.Photos,
-            x.Available,
-            x.Reviews.Count == 0 ? null : x.Reviews.Average(r => (double)r.Rating),
-            x.Reviews.Count
+    public static readonly Expression<Func<TalentProfile, ProfileResponse>> ProfileProjection =
+        profile => new ProfileResponse(
+            profile.Id,
+            profile.OwnerId,
+            profile.Owner.Name,
+            profile.Headline,
+            profile.Category,
+            profile.City,
+            profile.Rate,
+            profile.RateUnit,
+            profile.Bio,
+            profile.Skills,
+            profile.Photos,
+            profile.Available,
+            profile.Reviews.Count == 0 ? null : profile.Reviews.Average(r => (double)r.Rating),
+            profile.Reviews.Count
         );
 
-    public static GigResponse ToResponse(this Gig x) =>
-        new(
-            x.Id,
-            x.OwnerId,
-            x.Owner.Name,
-            x.Title,
-            x.Category,
-            x.City,
-            x.Description,
-            x.Date,
-            x.Budget,
-            x.Status,
-            x.Photos,
-            x.Applications.Count,
-            x.CreatedAt
+    public static readonly Expression<Func<Gig, GigResponse>> GigProjection =
+        gig => new GigResponse(
+            gig.Id,
+            gig.OwnerId,
+            gig.Owner.Name,
+            gig.Title,
+            gig.Category,
+            gig.City,
+            gig.Description,
+            gig.Date,
+            gig.Budget,
+            gig.Status,
+            gig.Photos,
+            gig.Applications.Count,
+            gig.CreatedAt
         );
+
+    // Mutation responses map the already-loaded tracked graph; reads use the same
+    // expressions in SQL so counts and averages do not load related collections.
+    private static readonly Func<TalentProfile, ProfileResponse> MapProfile =
+        ProfileProjection.Compile();
+    private static readonly Func<Gig, GigResponse> MapGig = GigProjection.Compile();
+
+    public static ProfileResponse ToResponse(this TalentProfile profile) => MapProfile(profile);
+
+    public static GigResponse ToResponse(this Gig gig) => MapGig(gig);
 
     public static ApplicationResponse ToResponse(this GigApplication x) =>
         new(
